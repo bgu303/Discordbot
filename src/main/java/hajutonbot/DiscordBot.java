@@ -23,7 +23,7 @@ public class DiscordBot {
         String token = this.config.get("TOKEN");
         DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.createDefault(token);
         builder.setStatus(OnlineStatus.ONLINE);
-        builder.setActivity(Activity.playing("With ur mom's saggy tits"));
+        builder.setActivity(Activity.playing("IntelliJ Community Edition 2020"));
         builder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
         this.shardManager = builder.build();
         this.shardManager.addEventListener(new EventListener());
@@ -33,7 +33,6 @@ public class DiscordBot {
             Scanner scanner = new Scanner(System.in);
             line = scanner.nextLine();
         } while(!line.equals("close"));
-
         this.shardManager.shutdown();
     }
 

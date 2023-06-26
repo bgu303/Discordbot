@@ -1,21 +1,21 @@
 package hajutonbot;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.net.http.HttpRequest;
 import java.net.http.HttpClient;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.github.cdimascio.dotenv.Dotenv;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -24,6 +24,13 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 public class EventListener extends ListenerAdapter {
     private static int count = 0;
@@ -41,7 +48,7 @@ public class EventListener extends ListenerAdapter {
         if (event.getMessage().getGuild().getName().equals("Reenit")) {
 
             // if (event.getChannel().getId().equals("1030802808372482170") && event.getAuthor().getId().equals("164331054814068736")) {
-                // event.getMessage().delete().queue();
+            // event.getMessage().delete().queue();
             // }
 
             channel = event.getGuild().getTextChannelsByName("reenit", true).get(0);
@@ -242,8 +249,7 @@ public class EventListener extends ListenerAdapter {
                                     enemyNameList.add(playerNode.get("nickname").asText());
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             channel.sendMessage("Something went wrong in Match fetching part.").queue();
                             return;
                         }
@@ -385,6 +391,48 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
+        if (event.getChannel().getId().equals("1122833104030158949") && event.getAuthor().getId().equals("300290102108618764")) {
+            MessageChannel workChannel = event.getGuild().getTextChannelsByName("botti", true).get(0);
+
+            if (message.equals("!start")) {
+                HttpClient httpClient = HttpClient.newHttpClient();
+
+                HttpRequest request = null;
+                try {
+                    request = HttpRequest.newBuilder()
+                            .uri(new URI("https://www.courtlistener.com/docket/19857399/feed/"))
+                            .GET()
+                            .build();
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
+
+                HttpResponse<String> response = null;
+                try {
+                    response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+                //workChannel.sendMessage("response sent").queue();
+                try {
+                    String rBodyString = response.body();
+
+                    System.out.println(rBodyString);
+                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder db = dbf.newDocumentBuilder();
+                    Document doc = db.parse(new InputSource(new StringReader(rBodyString)));
+                    Element root = doc.getDocumentElement();
+
+                    NodeList childElements = root.getChildNodes();
+
+                    System.out.println(childElements);
+
+                } catch (Exception e) {
+                    System.out.println("Error handling the response body: " + e);
+                    workChannel.sendMessage("Error handling the response body: " + e).queue();
+                }
+            }
+        }
     }
 
     public void onShutdown(@NotNull ShutdownEvent event) {
@@ -443,7 +491,7 @@ public class EventListener extends ListenerAdapter {
             if (file.exists()) {
                 List<String> lines = Files.readAllLines(file.toPath());
                 if (lines.size() == 1) {
-                    count = Integer.parseInt((String)lines.get(0));
+                    count = Integer.parseInt((String) lines.get(0));
                     System.out.println(count);
                 }
             }
