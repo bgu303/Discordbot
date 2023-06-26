@@ -9,6 +9,9 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.net.http.HttpRequest;
 import java.net.http.HttpClient;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +29,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
@@ -45,6 +49,8 @@ public class EventListener extends ListenerAdapter {
         String checkChannel = event.getMessage().getChannel().getId();
         String message = event.getMessage().getContentRaw();
         MessageChannel channel;
+        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+
         if (event.getMessage().getGuild().getName().equals("Reenit")) {
 
             // if (event.getChannel().getId().equals("1030802808372482170") && event.getAuthor().getId().equals("164331054814068736")) {
@@ -394,43 +400,57 @@ public class EventListener extends ListenerAdapter {
         if (event.getChannel().getId().equals("1122833104030158949") && event.getAuthor().getId().equals("300290102108618764")) {
             MessageChannel workChannel = event.getGuild().getTextChannelsByName("botti", true).get(0);
 
+
             if (message.equals("!start")) {
-                HttpClient httpClient = HttpClient.newHttpClient();
+                Runnable task = () -> {
+                    HttpClient httpClient = HttpClient.newHttpClient();
 
-                HttpRequest request = null;
-                try {
-                    request = HttpRequest.newBuilder()
-                            .uri(new URI("https://www.courtlistener.com/docket/19857399/feed/"))
-                            .GET()
-                            .build();
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                }
+                    HttpRequest request = null;
+                    try {
+                        request = HttpRequest.newBuilder()
+                                .uri(new URI("https://www.courtlistener.com/docket/19857399/feed/"))
+                                .GET()
+                                .build();
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                    }
 
-                HttpResponse<String> response = null;
-                try {
-                    response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                } catch (IOException | InterruptedException e) {
-                    e.printStackTrace();
-                }
-                //workChannel.sendMessage("response sent").queue();
-                try {
-                    String rBodyString = response.body();
+                    HttpResponse<String> response = null;
+                    try {
+                        response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                    } catch (IOException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        String rBodyString = response.body();
 
-                    System.out.println(rBodyString);
-                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder db = dbf.newDocumentBuilder();
-                    Document doc = db.parse(new InputSource(new StringReader(rBodyString)));
-                    Element root = doc.getDocumentElement();
+                        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                        DocumentBuilder db = dbf.newDocumentBuilder();
+                        Document doc = db.parse(new InputSource(new StringReader(rBodyString)));
 
-                    NodeList childElements = root.getChildNodes();
+                        NodeList nList = doc.getElementsByTagName("published");
 
-                    System.out.println(childElements);
+                        for (int i = 0; i < nList.getLength(); i++) {
+                            Node node = nList.item(i);
+                            String textContent = node.getTextContent();
+                            if (!textContent.equals("2023-06-13T00:00:00-07:00") && !textContent.equals("2023-06-26T00:00:00-07:00")) {
+                                workChannel.sendMessage("Uutta paskaa!").queue();
+                                return;
+                            }
+                        }
+                        System.out.println(nList.item(0).getTextContent());
+                        workChannel.sendMessage("Latest news: " + nList.item(0).getTextContent()).queue();
+                    } catch (Exception e) {
+                        System.out.println("Error handling the response body: " + e);
+                        workChannel.sendMessage("Error handling the response body: " + e).queue();
+                    }
+                };
+                executorService.scheduleAtFixedRate(task, 0, 5, TimeUnit.SECONDS);
+            }
 
-                } catch (Exception e) {
-                    System.out.println("Error handling the response body: " + e);
-                    workChannel.sendMessage("Error handling the response body: " + e).queue();
-                }
+            if (message.equals("!stop")) {
+                executorService.shutdownNow();
+                workChannel.sendMessage("Shutting down News alerter").queue();
             }
         }
     }
