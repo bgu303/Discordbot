@@ -12,6 +12,7 @@ import java.net.http.HttpClient;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,10 +42,21 @@ public class EventListener extends ListenerAdapter {
     private final Dotenv config = Dotenv.configure().load();
     String FACEIT_TOKEN = this.config.get("FACEIT_TOKEN");
 
+    public static List<OnMessageReceived> eventListeners = new ArrayList<>();
+
     public EventListener() {
+        BinanceCommands.addListeners(eventListeners);
+        WorkCommands.addListeners(eventListeners);
     }
 
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
+
+        if (event.getMessage().getAuthor().getId().equals("1026877644286996521")) {
+            return;
+        }
+        for (OnMessageReceived listener : eventListeners) {
+            listener.receive(event);
+        }
 
         String checkChannel = event.getMessage().getChannel().getId();
         String message = event.getMessage().getContentRaw();
@@ -397,7 +409,7 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
-        if (event.getChannel().getId().equals("1122833104030158949") && event.getAuthor().getId().equals("300290102108618764")) {
+        if (event.getChannel().getId().equals("1122833104030158949") && (event.getAuthor().getId().equals("300290102108618764") || event.getAuthor().getId().equals("157884815255797762"))) {
             MessageChannel workChannel = event.getGuild().getTextChannelsByName("botti", true).get(0);
 
 
@@ -428,18 +440,20 @@ public class EventListener extends ListenerAdapter {
                         DocumentBuilder db = dbf.newDocumentBuilder();
                         Document doc = db.parse(new InputSource(new StringReader(rBodyString)));
 
-                        NodeList nList = doc.getElementsByTagName("published");
+                        NodeList publishTags = doc.getElementsByTagName("published");
+                        NodeList titleTags = doc.getElementsByTagName("summary");
 
-                        for (int i = 0; i < nList.getLength(); i++) {
-                            Node node = nList.item(i);
+                        for (int i = 0; i < publishTags.getLength(); i++) {
+                            Node node = publishTags.item(i);
+                            System.out.println(node.getTextContent());
                             String textContent = node.getTextContent();
                             if (!textContent.equals("2023-06-13T00:00:00-07:00") && !textContent.equals("2023-06-26T00:00:00-07:00")) {
-                                workChannel.sendMessage("Uutta paskaa!").queue();
+                                workChannel.sendMessage("Uutta paskaa! @everyone " + titleTags.item(i).getTextContent() + " ").queue();
+                                executorService.shutdown();
                                 return;
                             }
                         }
-                        System.out.println(nList.item(0).getTextContent());
-                        workChannel.sendMessage("Latest news: " + nList.item(0).getTextContent()).queue();
+                        System.out.println("Latest news: " + publishTags.item(0).getTextContent());
                     } catch (Exception e) {
                         System.out.println("Error handling the response body: " + e);
                         workChannel.sendMessage("Error handling the response body: " + e).queue();
