@@ -25,10 +25,10 @@ public class WorkCommands {
     public static void addListeners(List<OnMessageReceived> list) {
         list.add((e) -> {
             String message = e.getMessage().getContentRaw();
-            MessageChannel workChannel = e.getGuild().getTextChannelsByName("botti", true).get(0);
             ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
             if (e.getChannel().getId().equals("1122833104030158949")) {
+                MessageChannel workChannel = e.getGuild().getTextChannelsByName("botti", true).get(0);
                 if (message.equals("!start")) {
                     Runnable task = () -> {
                         HttpClient httpClient = HttpClient.newHttpClient();
