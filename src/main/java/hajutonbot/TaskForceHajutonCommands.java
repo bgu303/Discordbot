@@ -13,10 +13,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TaskForceHajutonCommands {
 
@@ -69,6 +68,39 @@ public class TaskForceHajutonCommands {
 
                     if (message.equals("!moodle")) {
                         channel.sendMessage("https://hhmoodle.haaga-helia.fi/my/").queue();
+                    }
+
+                    if (message.startsWith("!prompt ")) {
+                        String prompt = message.substring(8);
+                        String generatedAnswer = "";
+                        try {
+                            URI uri = new URI("http://localhost:11434/api/generate");
+                            String requestBody = "{ \"model\": \"dolphin-mixtral:latest\", \"prompt\": \"" + prompt +"\" }";
+
+                            HttpRequest request = HttpRequest.newBuilder()
+                                    .uri(uri)
+                                    .header("Content-Type", "application/json")
+                                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                                    .build();
+
+                            HttpClient httpClient = HttpClient.newHttpClient();
+
+                            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+                            if (response.statusCode() == 200) {
+                                Pattern pattern = Pattern.compile("\"response\":\"([^\"]*)\"");
+                                Matcher matcher = pattern.matcher(response.body());
+                                while (matcher.find()) {
+                                    generatedAnswer += matcher.group(1).trim() + " ";
+                                }
+                                channel.sendMessage(generatedAnswer).queue();
+                            } else {
+                                System.out.println("Connection not found");
+                                channel.sendMessage("Connection not found").queue();
+                            }
+                        } catch (Exception error) {
+                            error.printStackTrace();
+                        }
                     }
 
                     if (message.startsWith("!find ")) {
