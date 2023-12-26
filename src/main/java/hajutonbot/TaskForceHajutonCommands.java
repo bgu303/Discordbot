@@ -108,10 +108,10 @@ public class TaskForceHajutonCommands {
                                 JsonNode firstChoice = choicesArray.get(0);
                                 JsonNode messageObject = firstChoice.get("message");
                                 generatedAnswer = messageObject.get("content").asText();
-                                String remainingPart = generatedAnswer.substring(1999);
 
                                 if (generatedAnswer.length() > 2000) {
                                     generatedAnswer = generatedAnswer.substring(0, 1999);
+                                    String remainingPart = messageObject.get("content").asText().substring(1999);
                                     channel.sendMessage(generatedAnswer).queue();
                                     channel.sendMessage(remainingPart).queue();
                                 } else {
