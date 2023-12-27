@@ -48,6 +48,7 @@ public class EventListener extends ListenerAdapter {
         BinanceCommands.addListeners(eventListeners);
         WorkCommands.addListeners(eventListeners);
         TaskForceHajutonCommands.addListeners(eventListeners);
+        TitislaperCommands.addListeners(eventListeners);
     }
 
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
